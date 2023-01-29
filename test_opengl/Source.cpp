@@ -4,20 +4,19 @@
 
 using namespace std;
 
-#define x_max 300  //координаты квадрата
-#define x_min 100
-#define y_max 300
-#define y_min 100
-
 #define INSIDE 0 //код квадрата
 #define LEFT 1   //код сектора слева от квадрата
 #define RIGHT 2  //код сектора справа от квадрата
 #define BOTTOM 4 //код сектора ниже от квадрата
 #define TOP 8    //код сектора выше от квадрата
 
-#define k 4
+const float x_max = 300;  //координаты квадрата
+const float x_min = 100;
+const float y_max = 300;
+const float y_min = 100;
 
 float  vertices[4][2] = {{x_min,y_min},{x_max,y_min},{x_max,y_max},{x_min,y_max}};
+GLFWwindow* window;
 
 void SectorShow() //процедура рисует квадрат
 {
@@ -82,6 +81,27 @@ void SortSegment(float **xy_v, int i) // находит отрезки, кото
                 code_out = code1;
             else
                 code_out = code2;
+
+            if (code_out & TOP) {
+                // точка находится выше квадрата
+                x = xy_v[i][0] + (xy_v[i][2] - xy_v[i][0]) * (y_max - xy_v[i][1]) / (xy_v[i][3] - xy_v[i][1]);
+                y = y_max;
+            }
+            else if (code_out & BOTTOM) {
+                // точка находится ниже квадрата
+                x = xy_v[i][0] + (xy_v[i][2] - xy_v[i][0]) * (y_min - xy_v[i][1]) / (xy_v[i][3] - xy_v[i][1]);
+                y = y_min;
+            }
+            else if (code_out & RIGHT) {
+                // точка находится справа от квадрата
+                y = xy_v[i][1] + (xy_v[i][3] - xy_v[i][1]) * (x_max - xy_v[i][0]) / (xy_v[i][2] - xy_v[i][0]);
+                x = x_max;
+            }
+            else if (code_out & LEFT) {
+                // точка находится слева от квадрата
+                y = xy_v[i][1] + (xy_v[i][3] - xy_v[i][1]) * (x_min - xy_v[i][0]) / (xy_v[i][2] - xy_v[i][0]);
+                x = x_min;
+            }
 
             if (code_out == code1) {
 
@@ -149,7 +169,10 @@ void StreamSegment() {
         //Вызываем функцию отбирающую подходящие нам отрезки
         for (int i = 0; i < n; i++)
         {
-            SortSegment(x, i);
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+                SegmentShow(x, i);
+            else
+                SortSegment(x, i);
         }
 
         for (int i = 0; i < n; i++) delete[] x[i];
@@ -165,7 +188,6 @@ void StreamSegment() {
 
 int main(void)
 {
-    GLFWwindow* window;
     if (!glfwInit())
         return -1;
 
