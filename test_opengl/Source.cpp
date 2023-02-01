@@ -15,10 +15,10 @@ const float x_min = 100;
 const float y_max = 300;
 const float y_min = 100;
 
-float  vertices[4][2] = {{x_min,y_min},{x_max,y_min},{x_max,y_max},{x_min,y_max}};
+float  vertices[4][2] = {{x_min,y_min},{x_max,y_min},{x_max,y_max},{x_min,y_max}}; 
 GLFWwindow* window;
 
-void SectorShow() //процедура рисует квадрат
+void ShowSector() //процедура рисует квадрат
 {
 
     glVertexPointer(2, GL_FLOAT, 0, vertices);
@@ -26,12 +26,12 @@ void SectorShow() //процедура рисует квадрат
     glDrawArrays(GL_LINE_LOOP, 0, 4);
 }
 
-void SegmentShow(float **xy_v,int i) //процедура рисования отрезков
+void ShowSegment(float **xyCoordinate,int i) //процедура рисования отрезков
 {   
     glColor3f(0,0,0);
     glBegin(GL_LINES);
-    glVertex2f(xy_v[i][0], xy_v[i][1]);
-    glVertex2f(xy_v[i][2], xy_v[i][3]);
+    glVertex2f(xyCoordinate[i][0], xyCoordinate[i][1]);
+    glVertex2f(xyCoordinate[i][2], xyCoordinate[i][3]);
     glEnd();
 }
 
@@ -53,11 +53,11 @@ int ComputeCode(float x, float y) //определяем код точки, ко
 }
 
 
-void SortSegment(float **xy_v, int i) // находит отрезки, которые находятся внутри квадрата или как-то пересекают ее границы
+void SortSegment(float **xyCoordinate, int i) // находит отрезки, которые находятся внутри квадрата или как-то пересекают ее границы
 {
     // определяем код расположения первой и второй точки отрезка относительно квадрата
-    int code1 = ComputeCode(xy_v[i][0], xy_v[i][1]);
-    int code2 = ComputeCode(xy_v[i][2], xy_v[i][3]);
+    int code1 = ComputeCode(xyCoordinate[i][0], xyCoordinate[i][1]);
+    int code2 = ComputeCode(xyCoordinate[i][2], xyCoordinate[i][3]);
 
     bool accept = false;
 
@@ -84,22 +84,22 @@ void SortSegment(float **xy_v, int i) // находит отрезки, кото
 
             if (code_out & TOP) {
                 // точка находится выше квадрата
-                x = xy_v[i][0] + (xy_v[i][2] - xy_v[i][0]) * (y_max - xy_v[i][1]) / (xy_v[i][3] - xy_v[i][1]);
+                x = xyCoordinate[i][0] + (xyCoordinate[i][2] - xyCoordinate[i][0]) * (y_max - xyCoordinate[i][1]) / (xyCoordinate[i][3] - xyCoordinate[i][1]);
                 y = y_max;
             }
             else if (code_out & BOTTOM) {
                 // точка находится ниже квадрата
-                x = xy_v[i][0] + (xy_v[i][2] - xy_v[i][0]) * (y_min - xy_v[i][1]) / (xy_v[i][3] - xy_v[i][1]);
+                x = xyCoordinate[i][0] + (xyCoordinate[i][2] - xyCoordinate[i][0]) * (y_min - xyCoordinate[i][1]) / (xyCoordinate[i][3] - xyCoordinate[i][1]);
                 y = y_min;
             }
             else if (code_out & RIGHT) {
                 // точка находится справа от квадрата
-                y = xy_v[i][1] + (xy_v[i][3] - xy_v[i][1]) * (x_max - xy_v[i][0]) / (xy_v[i][2] - xy_v[i][0]);
+                y = xyCoordinate[i][1] + (xyCoordinate[i][3] - xyCoordinate[i][1]) * (x_max - xyCoordinate[i][0]) / (xyCoordinate[i][2] - xyCoordinate[i][0]);
                 x = x_max;
             }
             else if (code_out & LEFT) {
                 // точка находится слева от квадрата
-                y = xy_v[i][1] + (xy_v[i][3] - xy_v[i][1]) * (x_min - xy_v[i][0]) / (xy_v[i][2] - xy_v[i][0]);
+                y = xyCoordinate[i][1] + (xyCoordinate[i][3] - xyCoordinate[i][1]) * (x_min - xyCoordinate[i][0]) / (xyCoordinate[i][2] - xyCoordinate[i][0]);
                 x = x_min;
             }
 
@@ -116,14 +116,21 @@ void SortSegment(float **xy_v, int i) // находит отрезки, кото
         }
     }
     if (accept) {
-        SegmentShow(xy_v,i);
+        ShowSegment(xyCoordinate,i);
     }
 
 }
+struct CountCoordinate //создаем структуру, которую будет возвращать функция StreamSegment
+{
+    int countach; // количество отрезков
+    float** AnswArray; // массив с координатами отрезков
+};
+
+CountCoordinate SegmentAnswer;
 
 // Функция создает динамический массив с координатами рисуемых отрезков
 // и заполняет его из файла "input.txt" в формате x1 y1 x2 y2(координаты двух точек отрезка)
-void StreamSegment() {
+CountCoordinate StreamSegment() {
 
     ifstream in("input.txt");
 
@@ -154,29 +161,20 @@ void StreamSegment() {
         //переходим в потоке в начало файла
         in.seekg(0, ios::beg);
         in.clear();
-
-        int n = count / (count_space + 1);//число строк
+        SegmentAnswer.countach = count / (count_space + 1);
         int m = count_space + 1;//число столбцов на единицу больше числа пробелов
-        float** x;
-        x = new float* [n];
-        for (int i = 0; i < n; i++) x[i] = new float[m];
-
+        SegmentAnswer.AnswArray = new float* [SegmentAnswer.countach];
+        for (int i = 0; i < SegmentAnswer.countach; i++) SegmentAnswer.AnswArray[i] = new float[m];
         //Считаем матрицу из файла
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < SegmentAnswer.countach; i++)
             for (int j = 0; j < m; j++)
-                in >> x[i][j];
-
+            {
+                in >> SegmentAnswer.AnswArray[i][j];
+            }
         //Вызываем функцию отбирающую подходящие нам отрезки
-        for (int i = 0; i < n; i++)
-        {
-            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-                SegmentShow(x, i);
-            else
-                SortSegment(x, i);
-        }
-
-        for (int i = 0; i < n; i++) delete[] x[i];
-        delete[] x;
+        return SegmentAnswer;
+        for (int i = 0; i < SegmentAnswer.countach; i++) delete[]  SegmentAnswer.AnswArray[i];
+        delete[]  SegmentAnswer.AnswArray;
 
         in.close();
     }
@@ -199,19 +197,27 @@ int main(void)
     }
     glfwMakeContextCurrent(window);
     
+    StreamSegment();
+
     while (!glfwWindowShouldClose(window))
     {
 
         glfwSwapBuffers(window);
         glPushMatrix();
-        glClearColor(1, 1, 1, 0);
+        glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        glColor3f(1.0, 0, 0);
+        glColor3f(1.0f, 0.0f, 0.0f);
         glLoadIdentity();
         glScalef(0.004f, 0.004f, 0.0f);
-        glTranslatef(-200, -200, 0);
-        SectorShow();
-        StreamSegment();
+        glTranslatef(-200.0f, -200.0f, 0.0f);
+        ShowSector();
+        for (int i = 0; i < SegmentAnswer.countach; i++) 
+        {
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+                ShowSegment(SegmentAnswer.AnswArray, i);
+            else
+                SortSegment(SegmentAnswer.AnswArray, i);
+        }
         glfwPollEvents();
     }
 
